@@ -1162,7 +1162,7 @@ enum CommandResult parse_source(struct Buffer *buf, struct Buffer *s,
 
   do
   {
-    if (mutt_extract_token(buf, s, MUTT_TOKEN_NO_FLAGS) != 0)
+    if (mutt_extract_token(buf, s, MUTT_TOKEN_BACKTICK_VARS) != 0)
     {
       mutt_buffer_printf(err, _("source: error at %s"), s->dptr);
       return MUTT_CMD_ERROR;
