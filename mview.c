@@ -34,10 +34,12 @@
 #include "core/lib.h"
 #include "mview.h"
 #include "imap/lib.h"
+#include "menu/lib.h"
 #include "ncrypt/lib.h"
 #include "pattern/lib.h"
 #include "mutt_header.h"
 #include "mutt_thread.h"
+#include "mview.h"
 #include "mx.h"
 #include "score.h"
 #include "sort.h"
@@ -308,6 +310,29 @@ static void update_tables(struct MailboxView *mv)
 }
 
 /**
+ * find_email_index_by_seq - Find an Email's virtual position from its sequence number
+ * @param m   Mailbox
+ * @param seq Sequence number
+ * @retval num Virtual position (row in Menu)
+ * @retval -1  Sequence number not found
+ */
+int find_email_index_by_seq(struct Mailbox *m, size_t seq)
+{
+  if (!m || (seq == 0))
+    return -1;
+
+  struct Email *e = NULL;
+  for (int vnum = 0; vnum < m->vcount; vnum++)
+  {
+    e = mutt_get_virt_email(m, vnum);
+    if (e->sequence == seq)
+      return vnum;
+  }
+
+  return -1;
+}
+
+/**
  * mview_mailbox_observer - Notification that a Mailbox has changed - Implements ::observer_t - @ingroup observer_api
  */
 int mview_mailbox_observer(struct NotifyCallback *nc)
@@ -318,6 +343,15 @@ int mview_mailbox_observer(struct NotifyCallback *nc)
     return -1;
 
   struct MailboxView *mv = nc->global_data;
+  struct Mailbox *m = mv->mailbox;
+
+  size_t seq = 0;
+  int idx = menu_get_index(mv->menu);
+  struct Email *e = mutt_get_virt_email(m, idx);
+  if (e)
+  {
+    seq = e->sequence;
+  }
 
   switch (nc->event_subtype)
   {
@@ -337,6 +371,10 @@ int mview_mailbox_observer(struct NotifyCallback *nc)
     default:
       return 0;
   }
+
+  idx = find_email_index_by_seq(m, seq);
+  if (idx != -1)
+    menu_set_index(mv->menu, idx);
 
   mutt_debug(LL_DEBUG5, "mailbox done\n");
   return 0;
